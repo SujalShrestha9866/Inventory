@@ -64,44 +64,72 @@ const getOne = async (req,res,next) => {
 }
 
 // create for new employee
+const create = async (req, res, next) => {
+    try {
+        const {
+            staffName,
+            staffRoll,
+            staffEmail,
+            staffContact,
+            staffSalary,
+            staffJoiningdate
+        } = req.body;
 
-const create = async(req,res,next) => {
-    try{
-        const {staffName,staffRoll,staffEmail,staffContact,staffSalary,staffJoiningdate} = req.body;
+        if (
+            !staffName ||
+            !staffRoll ||
+            !staffEmail ||
+            !staffContact ||
+            !staffSalary ||
+            !staffJoiningdate
+        ) {
+            return res.status(422).json({
+                success: false,
+                message: 'All the fields are required'
+            });
+        }
 
-        if(!staffName || !staffRoll || !staffEmail || !staffContact || !staffSalary || ! staffJoiningdate){
-            return res.status(422).json({success:false,message:'All the fields are required'});
+        const joiningDate = new Date(`${staffJoiningdate}T00:00:00.000Z`);
+
+        if (isNaN(joiningDate.getTime())) {
+            return res.status(422).json({
+                success: false,
+                message: 'Invalid joining date'
+            });
         }
 
         const employee = await prisma.staff.create({
-            data:{
-                staff_name:staffName,
-                staff_role:staffRoll,
-                staff_email:staffEmail,
-                staff_contact:staffContact,
-                staff_salary:staffSalary,
-                staff_joining_date:staffJoiningdate
+            data: {
+                staff_name: staffName,
+                staff_role: staffRoll,
+                staff_email: staffEmail,
+                staff_contact: staffContact,
+                staff_salary: parseFloat(staffSalary),
+                staff_joining_date: joiningDate
             },
-            select:{
+            select: {
                 staff_id: true,
                 staff_name: true,
-                staff_role:true,
+                staff_role: true,
                 staff_email: true,
-                staff_contact:true,
-                staff_salary:true,
+                staff_contact: true,
+                staff_salary: true,
                 staff_joining_date: true,
                 is_active: true,
-                created_at:true,
-                updated_at:true,
+                created_at: true,
+                updated_at: true
             }
         });
 
-        res.status(200).json({success:true,data:employee});
-    }catch(error){
+        return res.status(201).json({
+            success: true,
+            data: employee
+        });
+
+    } catch (error) {
         next(error);
     }
-}
-
+};
 //update the employee records.
 const update = async (req,res,next) =>{
     try{

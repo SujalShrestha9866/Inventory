@@ -14,6 +14,13 @@ const prisma = new PrismaClient({
 
 async function seed() {
     try {
+        // Check ADMIN_PASSWORD first
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        if (!adminPassword) {
+            throw new Error('ADMIN_PASSWORD environment variable is not set');
+        }
+
         // Find existing staff
         let staff = await prisma.staff.findUnique({
             where: {
@@ -33,7 +40,12 @@ async function seed() {
                     staff_joining_date: new Date('2024-01-01'),
                 },
             });
+
+            console.log('Admin staff created.');
         }
+
+        // Hash the password
+        const hash = await bcrypt.hash(adminPassword, 10);
 
         // Check if system user already exists
         const existingUser = await prisma.system_users.findUnique({
@@ -42,16 +54,27 @@ async function seed() {
             },
         });
 
+        // If admin already exists, UPDATE password
         if (existingUser) {
-            console.log('Admin system user already exists.');
-            console.log('Username:', existingUser.system_user_name);
+            await prisma.system_users.update({
+                where: {
+                    staff_id: staff.staff_id,
+                },
+                data: {
+                    system_user_password_hash: hash,
+                    system_user_name: 'admin',
+                    system_user_email: 'admin@example.com',
+                    user_role: 'Admin',
+                },
+            });
+
+            console.log('Admin password updated successfully.');
+            console.log('Username: admin');
+
             return;
         }
 
-        // Hash password
-        const hash = await bcrypt.hash('admin123', 10);
-
-        // Create system user
+        // Otherwise create admin user
         await prisma.system_users.create({
             data: {
                 staff_id: staff.staff_id,
@@ -64,7 +87,6 @@ async function seed() {
 
         console.log('Admin user created successfully.');
         console.log('Username: admin');
-        console.log('Password: admin123');
 
     } catch (error) {
         console.error('Seed failed:', error);
