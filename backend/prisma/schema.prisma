@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model category {
+  category_id   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_name String    @unique @db.VarChar(50)
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @default(now()) @db.Timestamp(6)
+  is_active     Boolean   @default(true)
+  product       product[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model expenses {
+  expense_id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paid_by        String   @db.Uuid
+  expense_type   String   @db.VarChar(100)
+  expense_name   String   @db.VarChar(100)
+  expense_amount Decimal  @db.Decimal(10, 4)
+  payment_method String   @db.VarChar(20)
+  expense_date   DateTime @db.Date
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @default(now()) @db.Timestamp(6)
+  is_active      Boolean  @default(true)
+  staff          staff    @relation(fields: [paid_by], references: [staff_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model inventory {
+  inventory_id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  product_id         String   @unique @db.Uuid
+  remaining_quantity Decimal  @db.Decimal(10, 4)
+  updated_at         DateTime @default(now()) @db.Timestamp(6)
+  product            product  @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model inventory_log {
+  log_id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  product_id      String   @db.Uuid
+  change_quantity Decimal  @db.Decimal(10, 4)
+  change_type     String   @db.VarChar(10)
+  reason          String   @db.VarChar(30)
+  reference_type  String?  @db.VarChar(255)
+  created_at      DateTime @default(now()) @db.Timestamp(6)
+  updated_at      DateTime @default(now()) @db.Timestamp(6)
+  product         product  @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model ledger {
+  ledger_id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  party_id         String   @db.Uuid
+  transaction_type String   @db.VarChar(20)
+  reference_id     String   @db.Uuid
+  credit           Decimal  @db.Decimal(10, 4)
+  debit            Decimal  @db.Decimal(10, 4)
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  updated_at       DateTime @default(now()) @db.Timestamp(6)
+  party            party    @relation(fields: [party_id], references: [party_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model party {
+  party_id      String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  party_name    String       @db.VarChar(50)
+  party_address String       @db.VarChar(60)
+  party_contact String       @unique @db.VarChar(30)
+  is_active     Boolean      @default(true)
+  created_at    DateTime     @default(now()) @db.Timestamp(6)
+  updated_at    DateTime     @default(now()) @db.Timestamp(6)
+  ledger        ledger[]
+  party_role    party_role[]
+  payment       payment[]
+  purchase      purchase[]
+  sale          sale[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model party_role {
+  party_role_id String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  party_id      String   @db.Uuid
+  role          String   @db.VarChar(50)
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+  updated_at    DateTime @default(now()) @db.Timestamp(6)
+  party         party    @relation(fields: [party_id], references: [party_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([party_id, role])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payment {
+  payment_id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  party_id       String?  @db.Uuid
+  staff_id       String?  @db.Uuid
+  payment_type   String   @db.VarChar(20)
+  payment_method String   @db.VarChar(20)
+  amount         Decimal  @db.Decimal(10, 4)
+  reference_note String   @db.VarChar(200)
+  payment_date   DateTime @db.Date
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @default(now()) @db.Timestamp(6)
+  party          party?   @relation(fields: [party_id], references: [party_id], onDelete: NoAction, onUpdate: NoAction)
+  staff          staff?   @relation(fields: [staff_id], references: [staff_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product {
+  product_id    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_id   String          @db.Uuid
+  product_name  String          @db.VarChar(100)
+  selling_price Decimal         @db.Decimal(10, 4)
+  unit          String          @db.VarChar(20)
+  is_active     Boolean         @default(true)
+  created_at    DateTime        @default(now()) @db.Timestamp(6)
+  updated_at    DateTime        @default(now()) @db.Timestamp(6)
+  inventory     inventory?
+  inventory_log inventory_log[]
+  category      category        @relation(fields: [category_id], references: [category_id], onUpdate: NoAction)
+  purchase_item purchase_item[]
+  sale_item     sale_item[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model purchase {
+  purchase_id   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  party_id      String          @db.Uuid
+  created_by    String          @db.Uuid
+  purchase_type String          @db.VarChar(20)
+  purchase_date DateTime        @db.Date
+  created_at    DateTime        @default(now()) @db.Timestamp(6)
+  updated_at    DateTime        @default(now()) @db.Timestamp(6)
+  staff         staff           @relation(fields: [created_by], references: [staff_id], onDelete: NoAction, onUpdate: NoAction)
+  party         party           @relation(fields: [party_id], references: [party_id], onDelete: NoAction, onUpdate: NoAction)
+  purchase_item purchase_item[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model purchase_item {
+  purchase_item_id String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  purchase_id      String    @db.Uuid
+  product_id       String    @db.Uuid
+  expiry_date      DateTime? @db.Date
+  product_quantity Decimal   @db.Decimal(10, 4)
+  purchase_price   Decimal   @db.Decimal(10, 4)
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
+  updated_at       DateTime  @default(now()) @db.Timestamp(6)
+  product          product   @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction)
+  purchase         purchase  @relation(fields: [purchase_id], references: [purchase_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sale {
+  sales_id   String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  party_id   String      @db.Uuid
+  sales_by   String      @db.Uuid
+  sales_type String      @db.VarChar(20)
+  sales_date DateTime    @db.Date
+  created_at DateTime    @default(now()) @db.Timestamp(6)
+  updated_at DateTime    @default(now()) @db.Timestamp(6)
+  status     String      @default("ACTIVE") @db.VarChar(20)
+  party      party       @relation(fields: [party_id], references: [party_id], onDelete: NoAction, onUpdate: NoAction)
+  staff      staff       @relation(fields: [sales_by], references: [staff_id], onDelete: NoAction, onUpdate: NoAction)
+  sale_item  sale_item[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sale_item {
+  sale_item_id   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sales_id       String   @db.Uuid
+  product_id     String   @db.Uuid
+  sales_quantity Decimal  @db.Decimal(10, 4)
+  sales_price    Decimal  @db.Decimal(10, 4)
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @default(now()) @db.Timestamp(6)
+  product        product  @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction)
+  sale           sale     @relation(fields: [sales_id], references: [sales_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model staff {
+  staff_id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  staff_name         String        @db.VarChar(50)
+  staff_role         String        @db.VarChar(50)
+  staff_contact      String        @unique @db.VarChar(30)
+  staff_email        String?       @unique @db.VarChar(100)
+  staff_salary       Decimal       @db.Decimal(10, 4)
+  staff_joining_date DateTime      @db.Date
+  is_active          Boolean       @default(true)
+  created_at         DateTime      @default(now()) @db.Timestamp(6)
+  updated_at         DateTime      @default(now()) @db.Timestamp(6)
+  expenses           expenses[]
+  payment            payment[]
+  purchase           purchase[]
+  sale               sale[]
+  system_users       system_users?
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model system_users {
+  system_user_id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  staff_id                  String   @unique @db.Uuid
+  system_user_name          String   @unique @db.VarChar(30)
+  system_user_email         String?  @unique @db.VarChar(100)
+  system_user_password_hash String   @db.VarChar(255)
+  user_role                 String   @db.VarChar(20)
+  is_active                 Boolean  @default(true)
+  created_at                DateTime @default(now()) @db.Timestamp(6)
+  updated_at                DateTime @default(now()) @db.Timestamp(6)
+  staff                     staff    @relation(fields: [staff_id], references: [staff_id], onDelete: NoAction, onUpdate: NoAction)
+}
